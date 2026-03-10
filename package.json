@@ -1,6 +1,6 @@
 {
   "name": "@elonehoo/agent",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A lightweight embedded agent framework (similar to Claude Code and OpenAI Codex).",
   "main": "index.js",
   "repository": {
