@@ -62,7 +62,8 @@ impl ToolManager {
 
   /// Returns tool definitions for the OpenAI API.
   pub fn definitions(&self) -> Vec<ToolDef> {
-    self.tools
+    self
+      .tools
       .values()
       .map(|t| ToolDef {
         r#type: "function",

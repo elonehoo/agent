@@ -152,9 +152,7 @@ async fn agent_task(mut rx: mpsc::UnboundedReceiver<String>, mut ctx: AgentConte
     }
 
     // Add user message to conversation
-    ctx.conversation.push(Message::User {
-      content: input,
-    });
+    ctx.conversation.push(Message::User { content: input });
 
     // Run the agent loop (model request → tool calls → repeat)
     run_agent_loop(&mut ctx).await;

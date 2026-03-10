@@ -1,7 +1,7 @@
 pub mod proto;
 pub mod sse;
 
-use reqwest::{Client, Response, header};
+use reqwest::{header, Client, Response};
 use serde_json::Value;
 
 use proto::*;
