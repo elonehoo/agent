@@ -1,0 +1,4 @@
+allowBuilds:
+  '[': true
+  ']': true
+  esbuild: true
