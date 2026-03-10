@@ -263,3 +263,51 @@ impl OpenAIClient {
     })
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_config_builder_defaults() {
+    let config = OpenAIConfigBuilder::with_api_key("sk-test").build();
+    assert_eq!(config.api_key, "sk-test");
+    assert_eq!(config.model, "gpt-4o");
+    assert_eq!(config.base_url, "https://api.openai.com/v1");
+  }
+
+  #[test]
+  fn test_config_builder_custom_model() {
+    let config = OpenAIConfigBuilder::with_api_key("sk-test")
+      .with_model("gpt-3.5-turbo")
+      .build();
+    assert_eq!(config.model, "gpt-3.5-turbo");
+    assert_eq!(config.base_url, "https://api.openai.com/v1");
+  }
+
+  #[test]
+  fn test_config_builder_custom_base_url() {
+    let config = OpenAIConfigBuilder::with_api_key("sk-test")
+      .with_base_url("https://custom.api.com/v1")
+      .build();
+    assert_eq!(config.base_url, "https://custom.api.com/v1");
+  }
+
+  #[test]
+  fn test_config_builder_all_custom() {
+    let config = OpenAIConfigBuilder::with_api_key("sk-key")
+      .with_model("deepseek-chat")
+      .with_base_url("https://api.deepseek.com/v1")
+      .build();
+    assert_eq!(config.api_key, "sk-key");
+    assert_eq!(config.model, "deepseek-chat");
+    assert_eq!(config.base_url, "https://api.deepseek.com/v1");
+  }
+
+  #[test]
+  fn test_finish_reason_equality() {
+    assert_eq!(FinishReason::Stop, FinishReason::Stop);
+    assert_eq!(FinishReason::ToolCalls, FinishReason::ToolCalls);
+    assert_ne!(FinishReason::Stop, FinishReason::ToolCalls);
+  }
+}

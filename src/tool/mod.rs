@@ -89,3 +89,93 @@ impl Default for ToolManager {
     Self::new()
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  struct MockTool {
+    schema: Value,
+  }
+
+  impl MockTool {
+    fn new() -> Self {
+      Self {
+        schema: serde_json::json!({
+          "type": "object",
+          "properties": { "input": { "type": "string" } }
+        }),
+      }
+    }
+  }
+
+  impl Tool for MockTool {
+    fn name(&self) -> &str {
+      "mock_tool"
+    }
+    fn description(&self) -> &str {
+      "A mock tool for testing"
+    }
+    fn parameter_schema(&self) -> &Value {
+      &self.schema
+    }
+    fn execute(&self, input: Value) -> BoxFuture {
+      Box::pin(async move {
+        let input_str = input
+          .get("input")
+          .and_then(|v| v.as_str())
+          .unwrap_or("none");
+        Ok(format!("mock result: {input_str}"))
+      })
+    }
+  }
+
+  #[test]
+  fn test_new_manager_is_empty() {
+    let mgr = ToolManager::new();
+    assert!(mgr.definitions().is_empty());
+  }
+
+  #[test]
+  fn test_register_and_definitions() {
+    let mut mgr = ToolManager::new();
+    mgr.register(MockTool::new());
+
+    let defs = mgr.definitions();
+    assert_eq!(defs.len(), 1);
+    assert_eq!(defs[0].r#type, "function");
+    assert_eq!(defs[0].function.name, "mock_tool");
+    assert_eq!(defs[0].function.description, "A mock tool for testing");
+  }
+
+  #[tokio::test]
+  async fn test_execute_found() {
+    let mut mgr = ToolManager::new();
+    mgr.register(MockTool::new());
+
+    let fut = mgr.execute("mock_tool", serde_json::json!({"input": "hello"}));
+    assert!(fut.is_some());
+    let result = fut.unwrap().await;
+    assert_eq!(result.unwrap(), "mock result: hello");
+  }
+
+  #[test]
+  fn test_execute_not_found() {
+    let mgr = ToolManager::new();
+    assert!(mgr.execute("nonexistent", serde_json::json!({})).is_none());
+  }
+
+  #[test]
+  fn test_register_overwrites_same_name() {
+    let mut mgr = ToolManager::new();
+    mgr.register(MockTool::new());
+    mgr.register(MockTool::new());
+    assert_eq!(mgr.definitions().len(), 1);
+  }
+
+  #[test]
+  fn test_default_is_empty() {
+    let mgr = ToolManager::default();
+    assert!(mgr.definitions().is_empty());
+  }
+}

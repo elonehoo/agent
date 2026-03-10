@@ -252,3 +252,65 @@ async fn run_agent_loop(ctx: &mut AgentContext) {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_transcript_source_equality() {
+    assert_eq!(TranscriptSource::User, TranscriptSource::User);
+    assert_eq!(TranscriptSource::Assistant, TranscriptSource::Assistant);
+    assert_ne!(TranscriptSource::User, TranscriptSource::Assistant);
+  }
+
+  #[test]
+  fn test_transcript_source_debug() {
+    assert_eq!(format!("{:?}", TranscriptSource::User), "User");
+    assert_eq!(format!("{:?}", TranscriptSource::Assistant), "Assistant");
+  }
+
+  #[tokio::test]
+  async fn test_agent_builder_and_send() {
+    let config = crate::openai::OpenAIConfigBuilder::with_api_key("sk-test").build();
+    let client = crate::openai::OpenAIClient::new(config);
+
+    let agent = AgentBuilder::new(client)
+      .with_system_prompt("You are helpful.")
+      .build();
+
+    // Agent should accept messages without panicking
+    agent.send_message("Hello");
+  }
+
+  #[tokio::test]
+  async fn test_agent_builder_with_callbacks() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    let idle_called = Arc::new(AtomicBool::new(false));
+    let error_called = Arc::new(AtomicBool::new(false));
+    let transcript_called = Arc::new(AtomicBool::new(false));
+
+    let config = crate::openai::OpenAIConfigBuilder::with_api_key("sk-test").build();
+    let client = crate::openai::OpenAIClient::new(config);
+
+    let _idle = idle_called.clone();
+    let _error = error_called.clone();
+    let _transcript = transcript_called.clone();
+
+    // Just verify the builder accepts all callbacks without panicking
+    let _agent = AgentBuilder::new(client)
+      .with_system_prompt("Test")
+      .on_idle(move || {
+        _idle.store(true, Ordering::SeqCst);
+      })
+      .on_error(move |_err| {
+        _error.store(true, Ordering::SeqCst);
+      })
+      .on_transcript(move |_text, _source| {
+        _transcript.store(true, Ordering::SeqCst);
+      })
+      .with_tool(crate::tool::shell::ShellTool::new())
+      .build();
+  }
+}
