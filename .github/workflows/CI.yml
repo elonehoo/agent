@@ -225,7 +225,7 @@ jobs:
           name: test-bindings-${{ matrix.target }}
           options: '-v ${{ github.workspace }}:${{ github.workspace }} -w ${{ github.workspace }} --platform ${{ steps.docker.outputs.PLATFORM }}'
           args: |
-            sh -c "corepack enable && pnpm test"
+            sh -c "apt-get update && apt-get install -y ca-certificates && corepack enable && pnpm test"
   publish:
     name: Publish
     runs-on: ubuntu-latest

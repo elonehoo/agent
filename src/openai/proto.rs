@@ -235,10 +235,7 @@ mod tests {
       }]
     });
     let chunk: ChatCompletionChunk = serde_json::from_value(json).unwrap();
-    assert_eq!(
-      chunk.choices[0].finish_reason.as_deref(),
-      Some("stop")
-    );
+    assert_eq!(chunk.choices[0].finish_reason.as_deref(), Some("stop"));
   }
 
   #[test]
@@ -264,10 +261,7 @@ mod tests {
     let tc = &chunk.choices[0].delta.tool_calls.as_ref().unwrap()[0];
     assert_eq!(tc.index, Some(0));
     assert_eq!(tc.id.as_deref(), Some("call_abc"));
-    assert_eq!(
-      tc.function.as_ref().unwrap().name.as_deref(),
-      Some("shell")
-    );
+    assert_eq!(tc.function.as_ref().unwrap().name.as_deref(), Some("shell"));
   }
 
   #[test]
