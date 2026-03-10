@@ -30,6 +30,7 @@ const session = new AgentSession(
     model: 'gpt-4o',
     baseUrl: 'https://api.openai.com/v1',
     systemPrompt: 'You are a helpful coding assistant.',
+    maxIterations: 8,
   },
   () => console.log('\nDone.'),
   (_err, error) => console.error('Error:', error),
@@ -55,6 +56,10 @@ See [examples/basic.ts](examples/basic.ts) for a full example, or [examples/chat
 | `model` | `string` | `"gpt-4o"` | Model name |
 | `baseUrl` | `string` | `"https://api.openai.com/v1"` | API base URL |
 | `systemPrompt` | `string` | — | System prompt for the agent |
+| `autoCompactTokenLimit` | `number` | — | Approximate token threshold that triggers automatic context compaction |
+| `compactPrompt` | `string` | built-in Codex-style prompt | Override the prompt used during compaction |
+| `maxIterations` | `number` | `8` | Max successful model rounds per `sendMessage` turn |
+| `disableIterationLimit` | `boolean` | `false` | Disable the per-turn iteration limit entirely |
 
 ### `AgentSession`
 
@@ -79,6 +84,44 @@ interface TranscriptEvent {
   text: string    // Streamed text content
   source: string  // "user" | "assistant"
 }
+```
+
+### Iteration Limit
+
+Each `sendMessage` call gets a fresh iteration budget. The agent counts
+successful model requests, not individual tool calls. Tool-assisted turns
+usually need at least 2 model rounds: one to request tools, and one to
+produce the final answer.
+
+```typescript
+const session = new AgentSession({
+  apiKey: process.env.OPENAI_API_KEY!,
+  systemPrompt: 'You are a helpful coding assistant.',
+  maxIterations: 12,
+})
+```
+
+To restore the current unlimited behavior explicitly:
+
+```typescript
+const session = new AgentSession({
+  apiKey: process.env.OPENAI_API_KEY!,
+  disableIterationLimit: true,
+})
+```
+
+### Context Compaction
+
+Codex-style context compaction is opt-in. When the approximate token usage
+crosses `autoCompactTokenLimit`, the agent asks the model to summarize older
+history, keeps the summary plus the most recent raw context, and then continues.
+
+```typescript
+const session = new AgentSession({
+  apiKey: process.env.OPENAI_API_KEY!,
+  autoCompactTokenLimit: 120_000,
+  compactPrompt: 'Create a concise handoff summary before continuing.',
+})
 ```
 
 ## Built-in Tools

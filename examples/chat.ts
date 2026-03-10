@@ -20,6 +20,7 @@ const config: AgentConfig = {
   apiKey,
   model: process.env.OPENAI_MODEL || 'gpt-4o',
   baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  maxIterations: 12,
   systemPrompt: `你是一个有帮助的编程助手，可以使用以下工具：
 - shell: 运行 shell 命令
 - glob: 用 glob 模式查找文件

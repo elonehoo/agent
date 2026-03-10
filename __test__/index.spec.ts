@@ -66,6 +66,59 @@ describe('AgentSession', () => {
     const session = new AgentSession({ apiKey: 'test-key' }, undefined, undefined, undefined)
     expect(session).toBeTruthy()
   })
+
+  it('支持自定义 maxIterations', () => {
+    const session = new AgentSession({
+      apiKey: 'test-key',
+      maxIterations: 12,
+    })
+    expect(session).toBeTruthy()
+  })
+
+  it('支持禁用迭代次数限制', () => {
+    const session = new AgentSession({
+      apiKey: 'test-key',
+      disableIterationLimit: true,
+    })
+    expect(session).toBeTruthy()
+  })
+
+  it('支持自动上下文压缩配置', () => {
+    const session = new AgentSession({
+      apiKey: 'test-key',
+      autoCompactTokenLimit: 120000,
+      compactPrompt: 'Summarize older context before continuing.',
+    })
+    expect(session).toBeTruthy()
+  })
+
+  it('maxIterations 必须大于 0', () => {
+    expect(() => {
+      new AgentSession({
+        apiKey: 'test-key',
+        maxIterations: 0,
+      })
+    }).toThrow(/maxIterations/)
+  })
+
+  it('maxIterations 和 disableIterationLimit 不能同时使用', () => {
+    expect(() => {
+      new AgentSession({
+        apiKey: 'test-key',
+        maxIterations: 4,
+        disableIterationLimit: true,
+      })
+    }).toThrow(/disableIterationLimit/)
+  })
+
+  it('autoCompactTokenLimit 必须大于 0', () => {
+    expect(() => {
+      new AgentSession({
+        apiKey: 'test-key',
+        autoCompactTokenLimit: 0,
+      })
+    }).toThrow(/autoCompactTokenLimit/)
+  })
 })
 
 // ===== sendMessage 测试 =====

@@ -38,6 +38,14 @@ pub struct AgentConfig {
   pub base_url: Option<String>,
   /// System prompt for the agent.
   pub system_prompt: Option<String>,
+  /// Approximate token threshold that triggers automatic context compaction.
+  pub auto_compact_token_limit: Option<u32>,
+  /// Override the default prompt used during context compaction.
+  pub compact_prompt: Option<String>,
+  /// Maximum number of successful model rounds per user turn. Defaults to 8.
+  pub max_iterations: Option<u32>,
+  /// Disable the default per-turn iteration limit entirely.
+  pub disable_iteration_limit: Option<bool>,
 }
 
 /// Event emitted when the agent generates a transcript.
@@ -56,8 +64,11 @@ pub struct TranscriptEvent {
 ///
 /// The agent implements a simple loop: the model receives user input and
 /// may output tool-call requests. The agent executes tools and sends the
-/// results back to the model. The loop continues until there are no more
-/// tool-call requests.
+/// results back to the model. By default each user turn is limited to 8
+/// successful model rounds unless disabled. Optional Codex-style automatic
+/// context compaction can summarize older history before sending the next
+/// request. The loop continues until there are no more tool-call requests
+/// or the iteration budget is exhausted.
 ///
 /// Built-in tools:
 /// - **shell**: Runs arbitrary shell commands
@@ -83,6 +94,8 @@ impl AgentSession {
     on_error: Option<ThreadsafeFunction<String>>,
     on_transcript: Option<ThreadsafeFunction<TranscriptEvent>>,
   ) -> napi::Result<Self> {
+    validate_agent_config(&config)?;
+
     // Enter the tokio runtime so that internal tokio::spawn calls work
     let _guard = tokio_runtime().enter();
 
@@ -102,6 +115,19 @@ impl AgentSession {
 
     if let Some(system_prompt) = &config.system_prompt {
       builder = builder.with_system_prompt(system_prompt);
+    }
+
+    if let Some(auto_compact_token_limit) = config.auto_compact_token_limit {
+      builder = builder.with_auto_compact_token_limit(auto_compact_token_limit);
+    }
+    if let Some(compact_prompt) = &config.compact_prompt {
+      builder = builder.with_compact_prompt(compact_prompt);
+    }
+    if let Some(max_iterations) = config.max_iterations {
+      builder = builder.with_max_iterations(max_iterations);
+    }
+    if config.disable_iteration_limit == Some(true) {
+      builder = builder.disable_iteration_limit();
     }
 
     if let Some(on_idle_fn) = on_idle {
@@ -150,4 +176,26 @@ impl AgentSession {
   pub fn send_message(&self, message: String) {
     self.agent.send_message(&message);
   }
+}
+
+fn validate_agent_config(config: &AgentConfig) -> napi::Result<()> {
+  if config.max_iterations.is_some() && config.disable_iteration_limit.is_some() {
+    return Err(napi::Error::from_reason(
+      "`maxIterations` cannot be used together with `disableIterationLimit`.".to_string(),
+    ));
+  }
+
+  if config.max_iterations == Some(0) {
+    return Err(napi::Error::from_reason(
+      "`maxIterations` must be greater than 0.".to_string(),
+    ));
+  }
+
+  if config.auto_compact_token_limit == Some(0) {
+    return Err(napi::Error::from_reason(
+      "`autoCompactTokenLimit` must be greater than 0.".to_string(),
+    ));
+  }
+
+  Ok(())
 }

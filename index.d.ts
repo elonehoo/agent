@@ -8,8 +8,11 @@
  *
  * The agent implements a simple loop: the model receives user input and
  * may output tool-call requests. The agent executes tools and sends the
- * results back to the model. The loop continues until there are no more
- * tool-call requests.
+ * results back to the model. By default each user turn is limited to 8
+ * successful model rounds unless disabled. Optional Codex-style automatic
+ * context compaction can summarize older history before sending the next
+ * request. The loop continues until there are no more tool-call requests
+ * or the iteration budget is exhausted.
  *
  * Built-in tools:
  * - **shell**: Runs arbitrary shell commands
@@ -46,6 +49,14 @@ export interface AgentConfig {
   baseUrl?: string
   /** System prompt for the agent. */
   systemPrompt?: string
+  /** Approximate token threshold that triggers automatic context compaction. */
+  autoCompactTokenLimit?: number
+  /** Override the default prompt used during context compaction. */
+  compactPrompt?: string
+  /** Maximum number of successful model rounds per user turn. Defaults to 8. */
+  maxIterations?: number
+  /** Disable the default per-turn iteration limit entirely. */
+  disableIterationLimit?: boolean
 }
 
 /** Event emitted when the agent generates a transcript. */
