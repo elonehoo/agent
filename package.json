@@ -33,7 +33,7 @@
       "aarch64-apple-darwin"
     ]
   },
-  "packageManager": "pnpm@10.31.0",
+  "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0"
   },
