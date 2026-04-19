@@ -67,7 +67,7 @@
     "npm-run-all2": "^8.0.4",
     "oxlint": "^1.14.0",
     "tinybench": "^6.0.0",
-    "typescript": "^5.9.2",
+    "typescript": "^6.0.0",
     "vitest": "^4.0.18"
   }
 }
