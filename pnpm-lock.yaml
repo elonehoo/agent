@@ -48,12 +48,6 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.3.0)
 
-  __test__: {}
-
-  benchmark: {}
-
-  examples: {}
-
 packages:
 
   '@emnapi/core@1.8.1':
