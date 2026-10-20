@@ -252,11 +252,20 @@ async fn run_agent_loop(ctx: &mut AgentContext) {
     &ctx.tool_defs,
     ctx.on_error.clone(),
     ctx.on_transcript.clone(),
-    ctx.auto_compact_token_limit,
-    ctx.compact_prompt.as_deref(),
-    ctx.max_iterations,
+    AgentLoopOptions {
+      auto_compact_token_limit: ctx.auto_compact_token_limit,
+      compact_prompt: ctx.compact_prompt.as_deref(),
+      max_iterations: ctx.max_iterations,
+    },
   )
   .await;
+}
+
+#[derive(Default)]
+struct AgentLoopOptions<'a> {
+  auto_compact_token_limit: Option<u32>,
+  compact_prompt: Option<&'a str>,
+  max_iterations: Option<u32>,
 }
 
 async fn run_agent_loop_with_client<C: ModelClient>(
@@ -266,10 +275,13 @@ async fn run_agent_loop_with_client<C: ModelClient>(
   tool_defs: &[ToolDef],
   on_error: Option<OnErrorFn>,
   on_transcript: Option<OnTranscriptFn>,
-  auto_compact_token_limit: Option<u32>,
-  compact_prompt: Option<&str>,
-  max_iterations: Option<u32>,
+  options: AgentLoopOptions<'_>,
 ) {
+  let AgentLoopOptions {
+    auto_compact_token_limit,
+    compact_prompt,
+    max_iterations,
+  } = options;
   let mut retry_backoff = ExponentialBackoffBuilder::default()
     .with_max_interval(Duration::from_secs(5 * 60))
     .with_max_elapsed_time(Some(Duration::from_secs(30 * 60)))
@@ -480,8 +492,8 @@ fn collect_compaction_messages(
   }
 
   let fallback_start = conversation.len().saturating_sub(keep_recent_messages);
-  for index in fallback_start.max(history_start)..conversation.len() {
-    keep[index] = true;
+  for value in keep.iter_mut().skip(fallback_start.max(history_start)) {
+    *value = true;
   }
 
   for (index, message) in conversation.iter().enumerate().skip(history_start) {
@@ -836,6 +848,22 @@ mod tests {
       .build();
   }
 
+  #[test]
+  fn test_collect_compaction_messages_empty_history() {
+    let (to_summarize, to_keep) = collect_compaction_messages(&[], 0, 1, 2);
+    assert!(to_summarize.is_empty());
+    assert!(to_keep.is_empty());
+  }
+
+  #[test]
+  fn test_collect_compaction_messages_start_beyond_history() {
+    let conversation = conversation_with_user();
+    let (to_summarize, to_keep) =
+      collect_compaction_messages(&conversation, conversation.len() + 2, 1, 2);
+    assert!(to_summarize.is_empty());
+    assert!(to_keep.is_empty());
+  }
+
   #[tokio::test]
   async fn test_run_agent_loop_appends_terminal_response_within_budget() {
     let client = MockModelClient::new(vec![Ok(terminal_response("done"))]);
@@ -850,9 +878,10 @@ mod tests {
       &tool_defs,
       None,
       None,
-      None,
-      None,
-      Some(1),
+      AgentLoopOptions {
+        max_iterations: Some(1),
+        ..AgentLoopOptions::default()
+      },
     )
     .await;
 
@@ -887,9 +916,10 @@ mod tests {
       &tool_defs,
       None,
       None,
-      None,
-      None,
-      Some(2),
+      AgentLoopOptions {
+        max_iterations: Some(2),
+        ..AgentLoopOptions::default()
+      },
     )
     .await;
 
@@ -941,9 +971,10 @@ mod tests {
       &tool_defs,
       Some(error_collector(errors.clone())),
       None,
-      None,
-      None,
-      Some(1),
+      AgentLoopOptions {
+        max_iterations: Some(1),
+        ..AgentLoopOptions::default()
+      },
     )
     .await;
 
@@ -984,9 +1015,10 @@ mod tests {
       &tool_defs,
       Some(error_collector(errors.clone())),
       None,
-      None,
-      None,
-      Some(2),
+      AgentLoopOptions {
+        max_iterations: Some(2),
+        ..AgentLoopOptions::default()
+      },
     )
     .await;
 
@@ -1042,9 +1074,10 @@ mod tests {
       &tool_defs,
       Some(error_collector(errors.clone())),
       None,
-      None,
-      None,
-      Some(1),
+      AgentLoopOptions {
+        max_iterations: Some(1),
+        ..AgentLoopOptions::default()
+      },
     )
     .await;
 
@@ -1219,9 +1252,11 @@ mod tests {
       &tool_defs,
       None,
       None,
-      Some(20),
-      None,
-      Some(2),
+      AgentLoopOptions {
+        auto_compact_token_limit: Some(20),
+        max_iterations: Some(2),
+        ..AgentLoopOptions::default()
+      },
     )
     .await;
 
