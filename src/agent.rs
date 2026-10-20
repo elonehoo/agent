@@ -492,7 +492,9 @@ fn collect_compaction_messages(
   }
 
   let fallback_start = conversation.len().saturating_sub(keep_recent_messages);
-  keep[fallback_start.max(history_start)..].fill(true);
+  for value in keep.iter_mut().skip(fallback_start.max(history_start)) {
+    *value = true;
+  }
 
   for (index, message) in conversation.iter().enumerate().skip(history_start) {
     if is_compaction_summary_message(message) {
@@ -844,6 +846,22 @@ mod tests {
       })
       .with_tool(crate::tool::shell::ShellTool::new())
       .build();
+  }
+
+  #[test]
+  fn test_collect_compaction_messages_empty_history() {
+    let (to_summarize, to_keep) = collect_compaction_messages(&[], 0, 1, 2);
+    assert!(to_summarize.is_empty());
+    assert!(to_keep.is_empty());
+  }
+
+  #[test]
+  fn test_collect_compaction_messages_start_beyond_history() {
+    let conversation = conversation_with_user();
+    let (to_summarize, to_keep) =
+      collect_compaction_messages(&conversation, conversation.len() + 2, 1, 2);
+    assert!(to_summarize.is_empty());
+    assert!(to_keep.is_empty());
   }
 
   #[tokio::test]
