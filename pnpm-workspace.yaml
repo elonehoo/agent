@@ -2,3 +2,12 @@ allowBuilds:
   '[': true
   ']': true
   esbuild: true
+
+# pnpm 12 ships a native binary for the host CPU. The x86_64-apple-darwin
+# binding tests run x64 Node under Rosetta on arm64 macOS, so that Node looks
+# up darwin-x64 optional dependencies (rollup, esbuild) while an arm64 pnpm
+# would otherwise install only darwin-arm64. Install both CPU builds.
+supportedArchitectures:
+  cpu:
+    - x64
+    - arm64
